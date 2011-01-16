@@ -1,4 +1,4 @@
-module Console where
+module Knyaz.Console where
 
 import Control.Concurrent
 import Control.Monad.Reader
