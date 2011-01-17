@@ -1,34 +1,55 @@
 module Knyaz.Console(
-  LockedConsole,
-  lockedPrintString,
-  lockedPrint,
-  runLockedConsole
+  withLockedPrinting,
+  withLockedLinePrinting
   ) where
 
-import Control.Concurrent
-import Control.Monad.Reader
+import Control.Concurrent hiding (forkIO)
+import Control.Concurrent.STM
+import Control.ContStuff
 
-data LockedConsoleState = LockedConsoleState {
-  consoleLock :: MVar ()
-  }
+type PrintingFunction = String -> IO ()
+type PrintStrings = [String]
 
-type LockedConsole = ReaderT LockedConsoleState
+type TerminationAction = IO ()
 
--- synchronised output of a string
-lockedPrintString :: String -> LockedConsole IO ()
-lockedPrintString string = do
-  lock <- asks consoleLock
-  liftIO $ do
-    takeMVar lock
-    putStr string
-    putMVar lock ()
+data PrinterCommand =
+  -- arguments: function which handles the printing, strings to print
+  PrintString PrintingFunction PrintStrings |
+  -- this takes an IO action which is responsible for writing a TVar to indicate the termination of the thread
+  QuitPrinting TerminationAction
 
--- synchronised output of a string with a newline at the end
-lockedPrint :: String -> LockedConsole IO ()
-lockedPrint string = lockedPrintString $ string ++ "\n"
+-- takes a an MVar which transmits the printer commands from the printing environment to the printing thread
+-- returns a function which is used for the actual transmission
+lockedPrinter :: MVar PrinterCommand -> IO (PrinterCommand -> IO ())
+lockedPrinter synchronisedCommand = do
+  void . forkIO . evalContT . forever $ do
+    command <- liftIO $ takeMVar synchronisedCommand
+    case command of
+         PrintString printer strings -> liftIO $ mapM_ printer strings
+         QuitPrinting action -> do
+           liftIO action
+           abort ()
+  return $ putMVar synchronisedCommand
 
--- create an environment for synchronised console IO
-runLockedConsole :: MonadIO m => LockedConsole m a -> m a
-runLockedConsole action = do
-  lock <- liftIO $ newMVar ()
-  runReaderT action $ LockedConsoleState lock
+
+-- creates an environment for synchronised console output
+-- takes a body to execute which takes two functions:
+--   one for printing without a newline,
+--   and one for printing with a newline appended at the end
+withLockedPrinting :: (PrintingFunction -> PrintingFunction -> IO ()) -> IO ()
+withLockedPrinting body = do
+  synchronisedCommand <- newEmptyMVar
+  printer <- lockedPrinter synchronisedCommand
+  let printFunctionWrapper function string = printer $ PrintString function [string]
+      printString = printFunctionWrapper putStr
+      printLine = printFunctionWrapper putStrLn
+  body printString printLine
+  quitTransaction <- newTVarIO False
+  printer $ QuitPrinting (atomically $ writeTVar quitTransaction True)
+  atomically $ readTVar quitTransaction >>= check
+
+-- a less generic version of withLockedPrinting which only provides a function to print entire lines
+withLockedLinePrinting :: (PrintingFunction -> IO ()) -> IO ()
+withLockedLinePrinting body =
+  withLockedPrinting customBody
+  where customBody _ printLine = body printLine
