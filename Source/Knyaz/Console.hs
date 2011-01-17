@@ -1,4 +1,5 @@
 module Knyaz.Console(
+  PrintFunction,
   withLockedPrinting,
   withLockedLinePrinting
   ) where
@@ -7,14 +8,14 @@ import Control.Concurrent hiding (forkIO)
 import Control.Concurrent.STM
 import Control.ContStuff
 
-type PrintingFunction = String -> IO ()
+type PrintFunction = String -> IO ()
 type PrintStrings = [String]
 
 type TerminationAction = IO ()
 
 data PrinterCommand =
   -- arguments: function which handles the printing, strings to print
-  PrintString PrintingFunction PrintStrings |
+  PrintString PrintFunction PrintStrings |
   -- this takes an IO action which is responsible for writing a TVar to indicate the termination of the thread
   QuitPrinting TerminationAction
 
@@ -36,7 +37,7 @@ lockedPrinter synchronisedCommand = do
 -- takes a body to execute which takes two functions:
 --   one for printing without a newline,
 --   and one for printing with a newline appended at the end
-withLockedPrinting :: (PrintingFunction -> PrintingFunction -> IO ()) -> IO ()
+withLockedPrinting :: (PrintFunction -> PrintFunction -> IO ()) -> IO ()
 withLockedPrinting body = do
   synchronisedCommand <- newEmptyMVar
   printer <- lockedPrinter synchronisedCommand
@@ -49,7 +50,7 @@ withLockedPrinting body = do
   atomically $ readTVar quitTransaction >>= check
 
 -- a less generic version of withLockedPrinting which only provides a function to print entire lines
-withLockedLinePrinting :: (PrintingFunction -> IO ()) -> IO ()
+withLockedLinePrinting :: (PrintFunction -> IO ()) -> IO ()
 withLockedLinePrinting body =
   withLockedPrinting customBody
   where customBody _ printLine = body printLine
