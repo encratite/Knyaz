@@ -9,8 +9,8 @@ import System.Directory
 import System.FilePath
 
 data FileInformation = FileInformation {
-  fileName :: String,
-  filePath :: String
+  fileName :: FilePath,
+  filePath :: FilePath
   }
 
 readDirectory :: FilePath -> IO (Maybe [FileInformation])
