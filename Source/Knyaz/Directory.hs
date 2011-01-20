@@ -5,6 +5,7 @@ module Knyaz.Directory(
                       readDirectory
                       ) where
 
+import Data.List
 import System.Directory
 import System.FilePath
 
@@ -16,7 +17,7 @@ data FileInformation = FileInformation {
 readDirectory :: FilePath -> IO (Maybe [FileInformation])
 readDirectory directory =
   catch (do names <- getDirectoryContents directory
-            let filteredNames = filter nameFilter names
+            let filteredNames = sort $ filter nameFilter names
             return . Just $ map constructInformation filteredNames)
         (\_ -> do return Nothing)
   where
