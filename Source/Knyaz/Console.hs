@@ -19,8 +19,8 @@ data PrinterCommand =
   -- this takes an IO action which is responsible for writing a TVar to indicate the termination of the thread
   QuitPrinting TerminationAction
 
--- takes a an MVar which transmits the printer commands from the printing environment to the printing thread
--- returns a function which is used for the actual transmission
+-- | Takes a an MVar which transmits the printer commands from the printing environment to the printing thread.
+-- Returns a function which is used for the actual transmission.
 lockedPrinter :: MVar PrinterCommand -> IO (PrinterCommand -> IO ())
 lockedPrinter synchronisedCommand = do
   void . forkIO . evalContT . forever $ do
@@ -33,10 +33,10 @@ lockedPrinter synchronisedCommand = do
   return $ putMVar synchronisedCommand
 
 
--- creates an environment for synchronised console output
--- takes a body to execute which takes two functions:
---   one for printing without a newline,
---   and one for printing with a newline appended at the end
+-- | Creates an environment for synchronised console output.
+-- Takes a body to execute which takes two functions:
+-- 1. one for printing without a newline
+-- 2. one for printing with a newline appended at the end
 withLockedPrinting :: (PrintFunction -> PrintFunction -> IO ()) -> IO ()
 withLockedPrinting body = do
   synchronisedCommand <- newEmptyMVar
@@ -49,7 +49,7 @@ withLockedPrinting body = do
   printer $ QuitPrinting (atomically $ writeTVar quitTransaction True)
   atomically $ readTVar quitTransaction >>= check
 
--- a less generic version of withLockedPrinting which only provides a function to print entire lines
+-- | A less generic version of withLockedPrinting which only provides a function to print entire lines.
 withLockedLinePrinting :: (PrintFunction -> IO ()) -> IO ()
 withLockedLinePrinting body =
   withLockedPrinting customBody

@@ -14,6 +14,8 @@ data FileInformation = FileInformation {
   filePath :: FilePath
   }
 
+-- | Try to read the contents of a directory.
+-- The results are sorted by their name.
 readDirectory :: FilePath -> IO (Maybe [FileInformation])
 readDirectory directory =
   catch (do names <- getDirectoryContents directory
