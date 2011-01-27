@@ -1,5 +1,5 @@
 module Knyaz.Console(
-  LockedConsole,
+  LockedConsoleT,
   withLockedConsole,
   printString,
   printLine
@@ -12,11 +12,11 @@ data LockedConsoleState = LockedConsoleState {
   consoleLock :: MVar ()
   }
 
-type LockedConsole = ReaderT LockedConsoleState
+type LockedConsoleT = ReaderT LockedConsoleState
 
-type PrintFunction m = String -> LockedConsole m ()
+type PrintFunction m = String -> LockedConsoleT m ()
 
-withLockedConsole :: MonadIO m => LockedConsole m a -> m a
+withLockedConsole :: MonadIO m => LockedConsoleT m a -> m a
 withLockedConsole body = do
   lock <- liftIO $ newMVar ()
   let consoleState = LockedConsoleState lock
