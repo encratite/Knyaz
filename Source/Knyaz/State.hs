@@ -11,13 +11,9 @@ import Control.Monad.State hiding (state)
 -- It is marked with an apostrophe because it is not the version that is usually used.
 -- See 'forkState' instead.
 forkState' :: (MonadState s m, MonadIO m) => StateT s IO () -> m ThreadId
-forkState' state = do
-  environment <- get
-  liftIO . forkIO . void $ runStateT state environment
+forkState' state = liftIO . forkIO . void . runStateT state =<< get
 
 -- | Simplified version of 'forkState\'' which does not return the thread ID.
 -- The purpose of this is to avoid warnings from -Wall from unused values in do blocks.
 forkState :: (MonadState s m, MonadIO m, Functor m) => StateT s IO () -> m ()
-forkState state = do
-  void $ forkState' state
-  return ()
+forkState = void . forkState'
