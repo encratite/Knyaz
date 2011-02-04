@@ -1,12 +1,10 @@
 module Knyaz.Forkable (
-  Forkable(..),
+  Forkable(..)
   ) where
 
 import Control.Concurrent
-import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.State
-import Data.Functor
+import Control.Monad.State hiding (state)
 
 class (Monad m, Functor m) => Forkable m where
   fork :: m a -> m ()
@@ -15,16 +13,10 @@ class (Monad m, Functor m) => Forkable m where
   fork' :: m a -> m ThreadId
 
 instance Forkable IO where
-  fork' action = forkIO $ do
-    action
-    return ()
+  fork' action = forkIO . void $ action
 
 instance (Forkable m) => Forkable (ReaderT r m) where
-  fork' action = do
-    environment <- ask
-    lift . forkIO $ runReaderT action environment
+  fork' action = lift . fork' . runReaderT action =<< ask
 
 instance (Forkable m) => Forkable (StateT s m) where
-  fork' action = do
-    state <- get
-    lift . forkIO $ runStateT action state
+  fork' action = lift . fork' . runStateT action =<< get
