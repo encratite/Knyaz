@@ -20,7 +20,6 @@ Library
   Exposed-modules:   Knyaz.ByteString
                      Knyaz.Console
                      Knyaz.Directory
-                     Knyaz.Reader
-                     Knyaz.State
+                     Knyaz.Forkable
                      Knyaz.String
   ghc-options:       -Wall
