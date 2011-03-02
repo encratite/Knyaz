@@ -15,7 +15,8 @@ Library
                      directory >= 1.1 && < 1.2,
                      filepath >= 1.2 && < 1.3,
                      mtl >= 2.0 && < 2.1,
-                     utf8-string >= 0.3 && < 0.4
+                     utf8-string >= 0.3 && < 0.4,
+                     vector >= 0.7 && < 0.8
   Exposed-modules:   Knyaz.ByteString
                      Knyaz.Console
                      Knyaz.Directory

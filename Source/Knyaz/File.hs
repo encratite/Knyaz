@@ -4,17 +4,22 @@ module Knyaz.File (
   ) where
 
 import Control.Monad
+import qualified Data.ByteString as DB
+import Data.Char
+import Data.Word
+import Data.Vector as DV
 
-maybeReadFile :: FilePath -> IO (Maybe String)
+maybeReadFile :: FilePath -> IO (Maybe DB.ByteString)
 maybeReadFile path =
-  catch (liftM Just $ readFile path)
+  catch (liftM Just $ DB.readFile path)
         (\_ -> return Nothing)
 
-maybeReadLines :: FilePath -> IO (Maybe [String])
+maybeReadLines :: FilePath -> IO (Maybe (DV.Vector DB.ByteString))
 maybeReadLines path = do
   maybeContents <- maybeReadFile path
   return $ case maybeContents of
     Just contents ->
-      Just $ lines contents
+      let newline = (fromIntegral $ ord '\n') :: Word8 in
+      Just . DV.fromList $ DB.split newline contents
     Nothing ->
       Nothing
